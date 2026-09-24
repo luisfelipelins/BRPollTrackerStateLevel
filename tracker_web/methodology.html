@@ -1,0 +1,42 @@
+<div class="toolbar"><div><span class="eyebrow">READING THE TRACKER</span><h2>Methodology & data</h2><p>Daily polling estimates, state aggregation, and the sources behind the figures.</p></div></div>
+<div class="method-grid">
+<article class="card prose">
+  <h3>Poll aggregation</h3>
+  <p>We construct two national-level trackers: a <em>national-poll tracker</em>, based directly on nationwide surveys, and a <em>state-level aggregate</em>, constructed from a collection of state trackers. Each state tracker is estimated using exactly the same procedure as the national-poll tracker.</p>
+  <p>For each election, we restrict the sample to presidential runoff polls and retain only surveys reporting preferences for both candidates. Poll results are normalized to a two-candidate vote-share scale, so that their shares sum to one. This makes polls directly comparable even when the original survey also reports undecided, blank, or null responses.</p>
+  <p>The tracker is constructed daily. In the freshness-weighted baseline, we consider eligible polls released during the preceding 30 calendar days, including the current day. A poll released <em>d</em> days before day <em>t</em> receives weight:</p>
+  <div class="equation">w<sub>i,t</sub> = 1 / (d<sub>i,t</sub> + 1)</div>
+  <p>A same-day poll receives weight 1, a one-day-old poll receives weight ½, and so forth. The estimate for candidate <em>c</em> is:</p>
+  <div class="equation">p̂<sub>c,t</sub> = (Σ<sub>i ∈ Pₜ</sub> w<sub>i,t</sub> p<sub>i,c</sub>) / (Σ<sub>i ∈ Pₜ</sub> w<sub>i,t</sub>)</div>
+  <p>Here P<sub>t</sub> contains polls released between <em>t − 29</em> and <em>t</em>, and p<sub>i,c</sub> is the normalized share of candidate <em>c</em> in survey <em>i</em>.</p>
+  <p>The tracking calendar runs from September 1 through the runoff election, capped at today for 2026. August polls are retained when they fall inside the initial 30-day windows, preventing an artificially small initial information set. The latest-ten option can also use older available polls from the same election year.</p>
+  <p>The same temporal aggregation is applied independently to nationwide polls and polls within each state. Their difference is the geographic population represented by the underlying surveys.</p>
+  <h3>From state trackers to a national aggregate</h3>
+  <p>State polling coverage is incomplete. For states with eligible polls, we use the state tracker. For states without an estimate on a given day, the baseline imputes the previous presidential runoff result. The mapping is by political side rather than candidate identity: PT to PT, and the previous opponent to the current opponent. The historical value is used whenever the selected rule yields no polling-based estimate.</p>
+  <div class="equation">p̂<sup>S</sup><sub>c,t</sub> = Σ<sub>s ∈ S</sub> ω<sub>s</sub> p̂<sub>s,c,t</sub></div>
+  <p>S includes the 26 states, the Federal District, and overseas votes. The fixed weight of each geography is its share of valid votes in the previous presidential runoff:</p>
+  <div class="equation">ω<sub>s</sub> = V<sub>s,previous</sub> / Σ<sub>j ∈ S</sub> V<sub>j,previous</sub></div>
+  <p>Using previous-election totals rather than current-election turnout ensures the aggregate can be constructed in real time, without information available only after the election. The result is the national share implied by the collection of state-level estimates available at each date.</p>
+</article>
+<div>
+  <article class="card prose"><h3>Choose the aggregation rule</h3>
+    <dl><dt>Last 30 days · freshness weighted</dt><dd>The baseline described above: polls aged 0–29 days receive weights proportional to 1 / (age + 1). Estimates can change as polls age even without new surveys.</dd>
+    <dt>Last 30 days · equal weight</dt><dd>The arithmetic mean of eligible polls aged 0–29 days. A survey exits the window when it reaches 30 days.</dd>
+    <dt>Latest 10 polls · equal weight</dt><dd>The arithmetic mean of the ten most recent eligible surveys, using fewer when necessary, with no age cutoff. A new survey displaces the oldest. Prepared input order breaks same-day ties. This remains the app’s initial selection.</dd></dl>
+    <p>The chosen rule applies to all national and state trackers. State voting weights remain fixed. The third national line restricts national surveys to institutes represented at both national and state levels during the displayed tracking period; survey frequency and geographic coverage may still differ.</p>
+  </article>
+  <article class="card prose"><h3>Data sources</h3>
+    <p>Our main source is <a href="https://basedosdados.org/dataset/fb38dbe8-03ce-46b4-a6b7-638ade03999c?table=b6df9e1c-cbcb-4dbd-893b-8645a51773e6" target="_blank" rel="noopener">Poder360’s polling dataset, distributed through Base dos Dados</a>. The dataset used for this project did not contain the required 2026 or 2018 polling observations.</p>
+    <p>For these years, we reconstructed the data by filtering TSE’s electoral survey databases for <a href="https://dadosabertos.tse.jus.br/eu/dataset/pesquisas-eleitorais-2026" target="_blank" rel="noopener">2026</a> and <a href="https://dadosabertos.tse.jus.br/eu/dataset/pesquisas-eleitorais-2018" target="_blank" rel="noopener">2018</a>. These provide registry numbers, national or state coverage, and other survey information. ChatGPT then searched the web for the reported polling figures associated with roughly 300 surveys in each year.</p>
+    <p><strong>Data limitation:</strong> a sample of the reconstructed figures was checked and found correct, but errors may remain in the 2018 and 2026 observations.</p>
+    <p>The app uses the project’s selected institute list and the survey-date field in the local source. The individual-survey table includes eligible polls from August 3 of the selected year. Tracker charts and their poll dots retain the September-to-runoff display window. Table filters do not alter the charts.</p>
+  </article>
+  <article class="card prose"><h3>Reading diagnostics & errors</h3>
+    <p><strong>Polling coverage:</strong> the share of previous-election valid votes in states with an eligible polling estimate before historical filling. <strong>Freshness:</strong> the voting-weighted mean age of the latest poll among covered states; unavailable when none is covered.</p>
+    <p><strong>2026 contributions:</strong> each state’s daily share change multiplied by its fixed weight, in percentage points. Contributions sum to the state aggregate’s national daily change. The first observation has no preceding day to compare.</p>
+    <p><strong>Historical contributions:</strong> each state’s estimation error multiplied by its previous-election weight, plus a correction for differences between previous and current valid-vote weights. The sum equals the national aggregate’s error. “Others” includes overseas votes.</p>
+    <p><strong>Summary-card error:</strong> the final displayed estimate minus the actual national runoff result for the PT candidate. A positive error means overestimation; a negative error means underestimation. Displayed in percentage points.</p>
+    <p><strong>Institute performance:</strong> survey counts, survey shares and mean absolute survey errors against national or corresponding state results, with equal survey weights, during the September-to-runoff period. Adding August rows to the survey table does not change this evaluation period.</p>
+    <p>Contribution hover values are rounded to 0.01 pp. Calculations and CSV exports retain precision, so rounded displayed components may not sum exactly. Each chart’s export contains its plotted data independently of table filters.</p>
+  </article>
+</div></div>

@@ -1,0 +1,4 @@
+aux_csv/
+openrouter_api_key.txt
+tests/
+__pycache__/
